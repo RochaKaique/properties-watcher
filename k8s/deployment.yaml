@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-native-filewatcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-native-filewatcher
+  template:
+    metadata:
+      labels:
+        app: demo-native-filewatcher
+    spec:
+      volumes:
+        - name: config-volume
+          configMap:
+            name: demo-native-filewatcher-config
+      containers:
+        - name: demo-native-filewatcher
+          image: demo-file-watchr:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config

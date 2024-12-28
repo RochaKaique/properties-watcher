@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: DemoPropertiesWatcher
+  cloud:
+    kubernetes:
+      config:
+        enabled: true
+        sources:
+          - name: demo-native-filewatcher-config
+      reload:
+        enabled: true
+        strategy: refresh
+        monitoring-config-maps: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
