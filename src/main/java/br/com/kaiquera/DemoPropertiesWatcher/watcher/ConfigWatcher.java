@@ -32,7 +32,7 @@ public class ConfigWatcher {
 
             addInitialPropertySource();
 
-            Thread watcherThread = new Thread(() -> {
+            Thread.startVirtualThread(() -> {
                 while (true) {
                     try {
                         WatchKey key = watchService.take();
@@ -48,9 +48,6 @@ public class ConfigWatcher {
                     }
                 }
             });
-
-            watcherThread.setDaemon(true);
-            watcherThread.start();
 
         } catch (Exception e) {
             e.printStackTrace();
