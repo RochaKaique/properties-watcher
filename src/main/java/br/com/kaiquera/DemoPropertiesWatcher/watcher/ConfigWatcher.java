@@ -5,54 +5,46 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.io.IOException;
-import java.nio.file.*;
-import java.nio.file.attribute.FileTime;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 @Configuration
+@EnableScheduling
 public class ConfigWatcher {
     private final ConfigurableEnvironment environment;
     private static final String CONFIG_FILE_OUTDOOR = "./config/conf.properties";
 
     private static final String PROPERTY_SOURCE_NAME = "dynamicProperties";
-    private volatile FileTime currentLastModifiedTime = FileTime.fromMillis(0);
+    private long lastModifiedTime = 0L;
 
-    public ConfigWatcher(ConfigurableEnvironment environment) {
+    public ConfigWatcher(ConfigurableEnvironment environment) throws IOException {
         this.environment = environment;
-        initializeWatcher();
+        addInitialPropertySource();
     }
 
-    private void initializeWatcher() {
+    @Scheduled(fixedRate = 1000)
+    public void watchFile() {
         try {
             Path path = Paths.get(CONFIG_FILE_OUTDOOR).getParent();
-            WatchService watchService = FileSystems.getDefault().newWatchService();
-            path.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+            if (Files.exists(path)) {
+                long currentModifiedTime = Files.getLastModifiedTime(path).toMillis();
 
-            addInitialPropertySource();
-
-            Thread.startVirtualThread(() -> {
-                while (true) {
-                    try {
-                        WatchKey key = watchService.take();
-                        for (WatchEvent<?> event : key.pollEvents()) {
-                                reloadProperties();
-                        }
-                        key.reset();
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                if (currentModifiedTime > lastModifiedTime) {
+                    lastModifiedTime = currentModifiedTime;
+                    reloadProperties();
                 }
-            });
-
-        } catch (Exception e) {
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
     private void addInitialPropertySource() throws IOException {
         FileSystemResource resource = new FileSystemResource(CONFIG_FILE_OUTDOOR);
